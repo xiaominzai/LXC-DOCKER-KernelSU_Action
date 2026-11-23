@@ -76,9 +76,9 @@ jobs:
         export PATH=$GITHUB_WORKSPACE/kernel_workspace/clang-aosp/clang-r416183b/bin:$PATH
         make O=out ARCH=arm64 ${{ env.KERNEL_CONFIG }}
         if [ ${{env.LLVM_CONFIG}}=y ]; then
-        make -j$(nproc --all) CC="ccache clang" O=out ARCH=arm64 CROSS_COMPILE="aarch64-linux-gnu-" CROSS_COMPILE_ARM32="arm-linux-gnueabi-" LLVM=1 LLVM_IAS=1
+        make -j$(nproc --all) CC="ccache clang" O=out ARCH=arm64 CROSS_COMPILE="aarch64-linux-gnu-" CROSS_COMPILE_ARM32="arm-linux-gnueabi-" KCFLAGS="-Wno-error=unused-variable" LLVM=1 LLVM_IAS=1
         else
-        make -j$(nproc --all) CC="ccache clang" O=out ARCH=arm64 CROSS_COMPILE="aarch64-linux-gnu-" CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
+        make -j$(nproc --all) CC="ccache clang" O=out ARCH=arm64 CROSS_COMPILE="aarch64-linux-gnu-" CROSS_COMPILE_ARM32="arm-linux-gnueabi-" KCFLAGS="-Wno-error=unused-variable"
         fi
             
     - name: 准备打包内核
