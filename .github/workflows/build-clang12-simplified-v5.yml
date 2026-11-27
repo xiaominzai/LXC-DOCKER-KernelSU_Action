@@ -64,6 +64,36 @@ jobs:
         ./runcpatch.sh android-kernel/kernel/cgroup/cgroup.c               
         fi
 
+    - name: 放宽 overlay 上层目录检查
+      run: |
+        python3 << 'PY'
+        from pathlib import Path
+        path = Path("kernel_workspace/android-kernel/fs/overlayfs/super.c")
+        text = path.read_text()
+        start = text.find("static int ovl_mount_dir(")
+        end = text.find("\nstatic int ovl_lower_dir(", start)
+        if start < 0 or end < 0:
+            raise SystemExit("ovl_mount_dir bounds not found")
+        fn = text[start:end]
+        marker = "not supported as upperdir"
+        if fn.count(marker) != 1:
+            raise SystemExit("upperdir check count in ovl_mount_dir: %s" % fn.count(marker))
+        block_start = fn.rfind("\t\tif (!err)\n", 0, fn.find(marker))
+        kfree = fn.find("\t\tkfree(tmp);", fn.find(marker))
+        if block_start < 0 or kfree < 0:
+            raise SystemExit("block bounds not found")
+        new_fn = fn[:block_start] + fn[kfree:]
+        if marker in new_fn or "ovl_mount_dir_noesc" not in new_fn:
+            raise SystemExit("patch result invalid")
+        new_text = text[:start] + new_fn + text[end:]
+        if new_text.count("ovl_dentry_remote") != text.count("ovl_dentry_remote") - 1:
+            raise SystemExit("remote check count changed unexpectedly")
+        if marker in new_text:
+            raise SystemExit("upperdir message still present")
+        path.write_text(new_text)
+        print("removed ovl_mount_dir upperdir remote check")
+        PY
+
     - name: 设置ccache缓存
       uses: hendrikmuhs/ccache-action@v1.2.22
       with:
